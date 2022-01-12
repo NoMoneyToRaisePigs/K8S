@@ -1,0 +1,194 @@
+
+# NODE_IP=39.101.166.22
+NODE_NAME=gf-worker-03
+MASTER_NODE_IPS=(39.101.166.22 39.98.114.92 39.101.182.149)
+WORKER_NODE_IPS=(39.105.193.128 39.105.183.241 39.106.16.18)
+# MASTER_NODE_Internal_IPS=(172.21.52.145 172.21.52.144 172.29.8.152)
+# WORKER_NODE_Internal_IPS=(172.22.76.54 172.22.76.52 172.22.76.53)
+MASTER_NODE_NAMES=(gf-master-01 gf-master-02 gf-master-03)
+WORKER_NODE_NAMES=(gf-worker-01 gf-worker-02 gf-worker-03)
+HARBOR_NODE_NAME=harbor.gf.com
+HARBOR_NODE_IP=39.104.169.153
+
+
+#Underline
+URed='\033[4;31m'         # Red
+UGreen='\033[4;32m'       # Green
+UYellow='\033[4;33m'      # Yellow
+UBlue='\033[4;34m'        # Blue
+
+Color_Off='\033[0m'
+
+#this should be recursive 
+echoInfo(){   
+   [ -n "$1" ] && echo -e "--->${UBlue} $1 ${Color_Off}" && echo
+}
+
+echoWarning(){   
+   [ -n "$1" ] && echo -e "--->${UYellow} $1 ${Color_Off}" && echo
+}
+
+echoFailure(){   
+   [ -n "$1" ] && echo -e "--->${URed} $1 ${Color_Off}" && echo
+}
+
+echoSuccess(){   
+   [ -n "$1" ] && echo -e "--->${UGreen} $1 ${Color_Off}" && echo
+}
+
+
+set_host_name(){
+  echoInfo "setting hostname to ${NODE_NAME}"
+  hostnamectl set-hostname ${NODE_NAME}
+}
+
+
+add_dns(){
+  for i in "${!MASTER_NODE_IPS[@]}"; 
+  do
+    echoInfo "adding ${MASTER_NODE_IPS[i]} ${MASTER_NODE_NAMES[i]} to hosts"
+
+    cat << EOF >>  /etc/hosts
+${MASTER_NODE_IPS[i]} ${MASTER_NODE_NAMES[i]}
+EOF
+  done
+
+  for i in "${!WORKER_NODE_IPS[@]}"; 
+  do
+    echoInfo "adding ${WORKER_NODE_IPS[i]} ${WORKER_NODE_NAMES[i]} to hosts"
+
+    cat << EOF >>  /etc/hosts
+${WORKER_NODE_IPS[i]} ${WORKER_NODE_NAMES[i]}
+EOF
+  done
+
+   echoInfo "adding ${HARBOR_NODE_IP} ${HARBOR_NODE_NAME} to hosts"
+   cat << EOF >>  /etc/hosts
+${HARBOR_NODE_IP} ${HARBOR_NODE_NAME}
+EOF
+}
+
+stop_disable_firewalld(){
+   echoInfo "try to disable and stop firewalld ..."
+
+   local Firewalld_Status=$(systemctl status firewalld | awk '/Active/{print $2}')
+   local Firewalld_Unit=$(systemctl list-unit-files | egrep "enabled" | egrep "firewalld")
+
+   [ "$Firewalld_status" == "active" ] && systemctl stop firewalld.service && echoInfo "stopping firewalled" || echoInfo "firewalled is not active"
+   [ -z "$Firewalld_unit" ] && echoInfo "firewalld disabled" ||  systemctl disable firewalld.service
+
+}
+
+stop_postfix(){
+  echoInfo "try to disable and stop postfix ..."
+
+   local Postfix_Status=$(systemctl status postfix  | awk '/Active/{print $2}')
+   local Postfix_Unit=$(systemctl list-unit-files | egrep "enabled" | egrep "postfix ")
+
+   [ "$Postfix_Status" == "active" ] && systemctl stop postfix.service && echoInfo "stopping postfix" || echoInfo "postfix is not active"
+   [ -z "$Postfix_Unit" ] && echoInfo "postfix disabled" ||  systemctl disable postfix.service
+}
+
+add_path(){ 
+  mkdir -p /etc/kubernetes/cert
+  mkdir -p /opt/k8s/{bin,cert,work}
+
+  echo 'PATH=/opt/k8s/bin:$PATH' >>/root/.bashrc
+  source /root/.bashrc
+}
+
+
+diable_selinux(){
+
+  echoInfo "try disable SELINUX"
+
+  local Line=$(cat /etc/selinux/config | egrep -v "^$|#" | egrep "SELINUX=")
+  if [ "${Line#*=}" == "disabled" ];then
+    echoInfo "selinux disabled" && setenforce 0
+  else
+    sed -i "s/SELINUX=en.*/SELINUX=disabled/g" /etc/selinux/config && setenforce 0
+    echoInfo "selinux disabled"
+  fi
+}
+
+#swap off
+swap_off() {
+
+  echoInfo "${BLUE}trun off swap${RES}"
+
+  local line=$(cat /etc/fstab | awk '/swap/{print $0}')
+  if [ "${line:0:1}" == "#" ];then
+    echoInfo "swap commentted" && swapoff -a
+  else
+    sed -i '/swap/s/^\(.*\)$/#\1/g' /etc/fstab && swapoff -a && echoInfo "swap is already off"
+  fi
+}
+
+sysctl_config(){
+   echoInfo "tuning tips"
+
+   modprobe br_netfilter
+
+   cat > /etc/sysctl.d/kubernetes.conf <<EOF
+net.bridge.bridge-nf-call-iptables=1
+net.bridge.bridge-nf-call-ip6tables=1
+net.ipv4.ip_forward=1
+net.ipv4.tcp_tw_recycle=0
+net.ipv4.neigh.default.gc_thresh1=1024
+net.ipv4.neigh.default.gc_thresh2=2048
+net.ipv4.neigh.default.gc_thresh3=4096
+vm.swappiness=0
+vm.overcommit_memory=1
+vm.panic_on_oom=0
+fs.inotify.max_user_instances=8192
+fs.inotify.max_user_watches=1048576
+fs.file-max=52706963
+fs.nr_open=52706963
+net.ipv6.conf.all.disable_ipv6=1
+net.netfilter.nf_conntrack_max=2310720
+EOF
+
+   sysctl -p /etc/sysctl.d/kubernetes.conf
+}
+
+clear_iptables(){
+  echoInfo "clear ip tables"
+  iptables -F && iptables -X && iptables -F -t nat && iptables -X -t nat
+  iptables -P FORWARD ACCEPT
+}
+
+
+
+yum_clean_cache(){
+  sleep 3
+  echoInfo "clear yum cache"
+  yum clean all
+}
+
+yum_update(){
+   echoInfo "udpate pkg"
+   yum update -y
+}
+
+yum_install_dependencies(){
+
+  echoInfo "installing dependencies"
+  yum install -y epel-release ||  exit 1
+  yum install conntrack ipvsadm ipset jq sysstat curl iptables libseccomp wget socat -y ||  exit 1
+}
+
+
+set_host_name
+add_dns
+add_path
+
+# yum_clean_cache
+yum_update
+yum_install_dependencies
+
+stop_disable_firewalld
+clear_iptables
+swap_off
+diable_selinux
+stop_postfix
+sysctl_config
