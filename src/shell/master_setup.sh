@@ -641,12 +641,12 @@ EOF
 
 
 main(){
-   # pre_check
-   # setup_kubectl
-   # install_setup_etcd
+   pre_check
+   setup_kubectl
+   install_setup_etcd
    setup_kube_apiserver
-   # setup_kube_controller_manager
-   # setup_kube_scheduler
+   setup_kube_controller_manager
+   setup_kube_scheduler
 }
 
 main

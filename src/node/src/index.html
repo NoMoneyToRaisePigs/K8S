@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Container Demo</title>
+    <meta charset="UTF-8" />
+    <style>   
+    .first-screen{
+        object-fit: fill;
+    }
+    .first-screen{
+        /* height: 650px; */
+        height: 70%;
+    }
+    .header{
+        background: none;
+    }
+
+    .main_banner_img{
+        background: url("./img/banner_bg.png") no-repeat 100%;
+        background-size: cover;
+        display: block;
+        position: relative;
+        width: 100%;
+        height: 100%;
+        top:0;
+        left:0;
+    }
+    .banner{
+        position: absolute;
+        top: 90px;
+    }
+    .banner_img{
+        margin-left: -40px;
+    }
+    .banner_img img{
+        width: 60%;
+    }
+    .banner_title p{
+        font-size: 54px;
+        line-height: 54px;
+        color: #fff;
+        margin-bottom: 26px;
+    }
+    .banner_title span{
+        font-size:24px;
+        line-height:24px;
+        color: #fff;
+    }
+    .first-screen-footer{
+        width: 1258px;
+        height: 200px;
+        display: table;
+        padding: 35px 0;
+        background-color: #fff;
+        box-sizing: border-box;
+        margin: 0 auto;
+        top: -100px;
+        position: relative;
+        opacity: .5px;
+        box-shadow: 4px 4px 14px rgba(64,64,64,.14);
+        
+    }
+   
+    </style>
+  </head>
+  <body style="height: 800px;">
+    <div class="first-screen">
+      <div class="header" id="header-nav">
+          <div class="main_width">
+
+          </div>
+      </div>
+      <div class="main_width main_banner_img">
+          <div class=" main_width" style="padding-left: 20%;">
+              <div class="banner">
+                  <div class="banner_img">
+                      <img src="./img/bannerlogo.png" alt="">
+                  </div>
+                  <div class="banner_title">
+                      <p>Hello 管理信息团队!</p>
+                      <span>CI&nbsp;·&nbsp;CD</span>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+  </body>
+</html>

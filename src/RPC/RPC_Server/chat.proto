@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+
+// 添加下面的go_package，分号前表示生成的**.pb.go文件的存放地址（会自动生成目录）,分号后表示*.pb.go文件所属的包名
+option go_package = "./chat;chat";
+package chat;
+
+message Message {
+  string body = 1;
+}
+
+service ChatService {
+  rpc SayHello(Message) returns (Message) {}
+}
