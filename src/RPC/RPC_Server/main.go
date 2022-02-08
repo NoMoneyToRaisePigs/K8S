@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
+	"gf/test/chat"
 	"log"
 	"net"
-
-	"gf/rpc/chat"
 
 	"google.golang.org/grpc"
 )
