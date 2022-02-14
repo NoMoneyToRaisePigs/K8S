@@ -10,7 +10,7 @@ tags: master, kube-apiserver, kube-scheduler, kube-controller-manager
 - [安装及配置kube-scheduler](#安装及配置kube-scheduler)
 - [安装及配置nginx](#安装及配置nginx)
 - [安装及配置keepalived](#安装及配置keepalived)
-- [all in one 脚本](#安装及配置all in one 脚本)
+- [AllInOne脚本](#安装及配置all in one 脚本)
 
 
 <!-- /TOC -->
