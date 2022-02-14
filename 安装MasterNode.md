@@ -1,4 +1,3 @@
-tags: master, kube-apiserver, kube-scheduler, kube-controller-manager
 
 # 05-1. 部署 master 节点
 
